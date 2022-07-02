@@ -1,5 +1,13 @@
 #include "philo.h"
+unsigned long	get_time(void)
+{
+    struct timeval	time;
+    unsigned long	now;
 
+    gettimeofday(&time, NULL);
+    now = time.tv_sec * 1000 + time.tv_usec / 1000;
+    return (now);
+}
 void ft_usleep(long time)
 {
     struct timeval now;
@@ -11,46 +19,8 @@ void ft_usleep(long time)
         usleep(10);
         gettimeofday(&now, 0);
     }
-
 }
-void init_philo(t_params *params)
-{
-    int i;
 
-    i = 0;
-    while (i < params -> num_phil)
-    {
-        params -> philo[i].eat_over = 0;
-        params -> philo[i].eat_time = 0;
-        params -> philo[i].id = i + 1;
-        params -> philo[i].right = &params -> fork[i];
-        params -> philo[i].left = &params -> fork[(i + 1) % params -> num_phil];
-    }
-}
-int init_params (t_params *params)
-{
-    int i;
-    int chk;
-
-    i = 0;
-    chk = pthread_mutex_init(&(params -> eat_check_mut), NULL);
-    chk += pthread_mutex_init(&(params -> close_check_mut), NULL);
-    chk += pthread_mutex_init(&(params -> print_mut), NULL);
-    params -> philo = NULL;
-    params -> fork = NULL;
-    params -> philo = malloc(sizeof(t_philo) * params -> num_phil);
-    params -> fork = malloc(sizeof (pthread_mutex_t) * params -> num_phil);
-    params -> life = malloc(sizeof (pthread_t) * params -> num_phil);
-    if (!params -> philo | !params -> fork | !params -> life)
-        return(1);
-    while (i < params -> num_phil)
-    {
-        chk += pthread_mutex_init(&params -> fork[i], NULL);
-        i++;
-    }
-    return (chk);
-
-}
 void fill_params(t_params *params, char **argv)
 {
     params->num_phil = ft_atoi(argv[1]);
@@ -60,29 +30,127 @@ void fill_params(t_params *params, char **argv)
     params->num_phil_must_eat = ft_atoi(argv[5]);
 
 }
-
-void *test(void *data)
+void philo_print(t_philo *philo, char *text)
 {
-    int *num = data;
-    while(*num < 1000)
-        *(num)++;
+    pthread_mutex_lock(&philo -> params -> print_mut);
+    pthread_mutex_lock(&philo -> params -> close_check_mut);
+    if (philo -> params -> is_end <= 0)
+    {
+        pthread_mutex_unlock(&philo -> params -> print_mut);
+        pthread_mutex_unlock(&philo -> params -> close_check_mut);
+        return ;
+    }
+    printf("%lu %d %s \n", get_time() - philo -> params -> start, philo -> id, text);
+    pthread_mutex_unlock(&philo -> params -> print_mut);
+    pthread_mutex_unlock(&philo -> params -> close_check_mut);
+}
+
+void try_eat(t_philo *philo, int time_eat)
+{
+    pthread_mutex_lock(philo -> left);
+    philo_print(philo, "has taken a fork");
+    pthread_mutex_lock(philo -> right);
+    philo_print(philo, "has taken a fork");
+    philo_print(philo, "is eating");
+    pthread_mutex_lock(&philo -> params -> eat_check_mut);
+    philo -> eat_time = get_time();
+    pthread_mutex_unlock(&philo -> params -> eat_check_mut);
+    ft_usleep(time_eat);
+    pthread_mutex_unlock(philo -> left);
+    pthread_mutex_unlock(philo -> right);
+    philo -> eat_num--;
+}
+void philo_cycle(t_philo *philo, int time_eat, int time_sleep)
+{
+    while (1)
+    {
+        pthread_mutex_lock(&philo -> params -> close_check_mut);
+        if (philo -> params -> is_end <= 0)
+        {
+            pthread_mutex_unlock(&(philo -> params -> close_check_mut));
+            break;
+        }
+        pthread_mutex_unlock(&(philo -> params -> close_check_mut));
+        try_eat(philo, time_eat);
+        pthread_mutex_lock(&(philo -> params -> close_check_mut));
+        if (philo -> eat_num == 0)
+            philo -> eat_over = 1;
+        pthread_mutex_unlock(&(philo -> params -> close_check_mut));
+        philo_print(philo, "is sleeping");
+        ft_usleep(time_sleep);
+        philo_print(philo, "is thinking");
+    }
+}
+void *philo_thread(void *v_philo)
+{
+    t_philo *philo;
+    int time_eat;
+    int time_sleep;
+    philo = (t_philo *)v_philo;
+    time_eat = philo-> params -> time_eat;
+    time_sleep = philo -> params -> time_sleep;
+    philo_print(philo, "is thinking");
+    if (philo -> id % 2 == 0 && philo -> params -> num_phil != 1)
+        ft_usleep(time_sleep - 10);
+    if (philo -> params -> num_phil == 1)
+    {
+        philo_print(philo, "has taken a fork");
+        ft_usleep(philo -> params -> time_die);
+    }
+    else
+        philo_cycle(philo, time_eat, time_sleep);
     return(0);
+
+
+}
+int pthread_manage(t_params *params, int command)
+{
+    int i;
+
+    i = 0;
+    if (command == 0)
+    {
+        while (i < params->num_phil)
+        {
+            pthread_join(params -> life[i], NULL);
+            i++;
+        }
+        if (command == 1)
+        {
+            params -> start = get_time();
+            while (i < params -> start)
+            {
+                params -> philo[i].eat_time = params -> start;
+                if (pthread_create(&(params -> life[i]), NULL, philo_thread, &(params -> philo[i])))
+                    return(1);
+                i++;
+            }
+        }
+    }
+    return(0);
+
 }
 int main(int argc, char **argv)
 {
+    t_params params;
     if (argc != 5 && argc != 6)
     {
-        printf("%s","error");
+        printf("%s","error1");
         return(0);
     }
-    pthread_t id;
-    int tmp;
-    pthread_create(&id,0,test,&tmp);
-    while (tmp < 1000)
-        printf ("%d", tmp);
-    pthread_join(id, 0);
-    argc++;
-    t_params params;
+    if (init_params(&params))
+    {
+        printf("%s", "error2");
+        return(0);
+    }
     fill_params(&params, argv);
+    if(pthread_manage(&params, 1))
+    {
+        printf("error3");
+        return(0);
+    }
+    pthread_watch(&params);
+    pthread_manage(&params, 0);
+
     return(0);
 }
