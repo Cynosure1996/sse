@@ -86,6 +86,7 @@ void philo_cycle(t_philo *philo, int time_eat, int time_sleep)
 }
 void *philo_thread(void *v_philo)
 {
+    printf("huy");
     t_philo *philo;
     int time_eat;
     int time_sleep;
@@ -116,21 +117,22 @@ int pthread_manage(t_params *params, int command)
     {
         while (i < params->num_phil)
         {
-            pthread_join(params -> life[i], NULL);
+            pthread_join(params->life[i], NULL);
             i++;
         }
+    }
         if (command == 1)
         {
             params -> start = get_time();
             while (i < params -> num_phil)
             {
                 params -> philo[i].eat_time = params -> start;
-                if (pthread_create(&(params -> life[i]), NULL, philo_thread, &(params -> philo[i])))
+                if (pthread_create(&(params -> life[i]),
+                                   NULL, philo_thread, &(params -> philo[i])))
                     return(1);
                 i++;
             }
         }
-    }
     return(0);
 
 }

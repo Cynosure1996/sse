@@ -7,7 +7,8 @@
 #include <unistd.h>
 #include <stdlib.h>
 
-typedef struct s_philo{
+typedef struct s_philo
+{
     pthread_mutex_t *left;
     pthread_mutex_t *right;
     int eat_num;
@@ -16,8 +17,9 @@ typedef struct s_philo{
     unsigned int eat_time;
     struct s_params *params;
 
-}t_philo;
-typedef struct s_params{
+}               t_philo;
+typedef struct s_params
+{
     pthread_t *life;
     pthread_mutex_t print_mut;
     pthread_mutex_t	*fork;
@@ -31,7 +33,7 @@ typedef struct s_params{
     int is_end;
     t_philo *philo;
     unsigned long start;
-}t_params;
+}               t_params;
 
 int     ft_isdigit(int c);
 int	    ft_atoi(const char *str);
