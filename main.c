@@ -21,13 +21,16 @@ void ft_usleep(long time)
     }
 }
 
-void fill_params(t_params *params, char **argv)
+void fill_params(t_params *params, char **argv, int argc)
 {
     params->num_phil = ft_atoi(argv[1]);
     params->time_die = ft_atoi(argv[2]);
     params->time_eat = ft_atoi(argv[3]);
     params->time_sleep = ft_atoi(argv[4]);
-    params->num_phil_must_eat = ft_atoi(argv[5]);
+    if (argc == 6)
+        params->num_phil_must_eat = ft_atoi(argv[5]);
+    else
+        params->num_phil_must_eat = -1;
 
 }
 void philo_print(t_philo *philo, char *text)
@@ -86,15 +89,16 @@ void *philo_thread(void *v_philo)
     t_philo *philo;
     int time_eat;
     int time_sleep;
+
     philo = (t_philo *)v_philo;
     time_eat = philo-> params -> time_eat;
     time_sleep = philo -> params -> time_sleep;
-    philo_print(philo, "is thinking");
+    philo_print(philo, "Думает");
     if (philo -> id % 2 == 0 && philo -> params -> num_phil != 1)
         ft_usleep(time_sleep - 10);
     if (philo -> params -> num_phil == 1)
     {
-        philo_print(philo, "has taken a fork");
+        philo_print(philo, "Взял вилку");
         ft_usleep(philo -> params -> time_die);
     }
     else
@@ -118,7 +122,7 @@ int pthread_manage(t_params *params, int command)
         if (command == 1)
         {
             params -> start = get_time();
-            while (i < params -> start)
+            while (i < params -> num_phil)
             {
                 params -> philo[i].eat_time = params -> start;
                 if (pthread_create(&(params -> life[i]), NULL, philo_thread, &(params -> philo[i])))
@@ -138,12 +142,12 @@ int main(int argc, char **argv)
         printf("%s","error1");
         return(0);
     }
+    fill_params(&params, argv, argc);
     if (init_params(&params))
     {
         printf("%s", "error2");
         return(0);
     }
-    fill_params(&params, argv);
     if(pthread_manage(&params, 1))
     {
         printf("error3");

@@ -8,9 +8,6 @@
 #include <stdlib.h>
 
 typedef struct s_philo{
-    unsigned  long long timer;
-    unsigned int count_eat;
-    unsigned int count_over;
     pthread_mutex_t *left;
     pthread_mutex_t *right;
     int eat_num;
@@ -38,12 +35,11 @@ typedef struct s_params{
 
 int     ft_isdigit(int c);
 int	    ft_atoi(const char *str);
-void    fill_params(t_params *params, char **argv);
+void    fill_params(t_params *params, char **argv, int argc);
 void    init_philo(t_params *params);
 int     init_params (t_params *params);
 unsigned long	get_time(void);
 void ft_usleep(long time);
-void fill_params(t_params *params, char **argv);
 void philo_print(t_philo *philo, char *text);
 void try_eat(t_philo *philo, int time_eat);
 void philo_cycle(t_philo *philo, int time_eat, int time_sleep);

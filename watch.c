@@ -52,7 +52,8 @@ void pthread_watch(t_params *params)
     while(1)
     {
         pthread_mutex_lock(&params -> close_check_mut);
-        if (params -> is_end <= 0) {
+        if (params -> is_end <= 0)
+        {
             pthread_mutex_unlock(&params->close_check_mut);
             break;
         }
